@@ -20,4 +20,8 @@ public class JobRequest {
     public String getId() {
 	return id;
     }
+
+    public void setUrls(Set<String> urls) {
+        this.urls = urls;
+    }
 }
