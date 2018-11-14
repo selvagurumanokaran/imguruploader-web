@@ -1,7 +1,6 @@
 package com.leadiq.imguruploader.service;
 
 import java.util.Date;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -18,9 +17,13 @@ import com.leadiq.imguruploader.model.UploadedImages;
 @Service
 public class ImgurService {
 
-    private ConcurrentMap<String, Image> imageMap = new ConcurrentHashMap<>();
+    private ConcurrentMap<String, Image> imageMap;
+    private ImageJobExecutor jobExecutor;
 
-    private ImageJobExecutor jobExecutor = new ImageJobExecutor(imageMap);
+    public ImgurService() {
+	imageMap = new ConcurrentHashMap<>();
+	jobExecutor = new ImageJobExecutor(imageMap);
+    }
 
     public UploadedImages getAllUploadedImages() {
 	UploadedImages uploadedImages = new UploadedImages();
@@ -45,4 +48,7 @@ public class ImgurService {
 	return UUID.randomUUID().toString();
     }
 
+    public ConcurrentMap<String, Image> getImageMap() {
+	return imageMap;
+    }
 }

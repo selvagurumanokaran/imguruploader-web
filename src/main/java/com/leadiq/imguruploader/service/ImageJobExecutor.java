@@ -27,41 +27,45 @@ import java.io.FileInputStream;
 @Service
 public class ImageJobExecutor {
 
-    private ObjectMapper mapper = new ObjectMapper();
-
+    private ObjectMapper mapper;
     private ConcurrentMap<String, Image> imageMap;
 
     public ImageJobExecutor(ConcurrentMap<String, Image> imageMap) {
 	this.imageMap = imageMap;
+	this.mapper = new ObjectMapper();
     }
 
     @Async
-    public Boolean executeJob(String jobId, String url) {
+    public void executeJob(String jobId, String url) {
 
 	try {
 	    File imageFile = downloadImage(new URL(url));
-
-	    HttpURLConnection conn = getConnection();
-	    writeConenction(conn, imageFile);
+	    HttpURLConnection conn = createConnection(imageFile);
 	    JsonNode response = mapper.readTree(getResponse(conn));
 	    if (response.get("success").asBoolean()) {
-		imageMap.compute(jobId, (key, value) -> {
-		    return value;
-		});
+		onSuccess(jobId, url);
 	    } else {
-		System.out.println("Failed!");
+		onFailure(jobId, url);
 	    }
 	} catch (IOException e) {
-
+	    onFailure(jobId, url);
 	}
-	return null;
     }
 
-    private void writeConenction(HttpURLConnection conn, File file) throws IOException {
-	OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream());
-	writer.write("image=" + toBase64(file));
-	writer.flush();
-	writer.close();
+    private void onSuccess(String jobId, String url) {
+	imageMap.compute(jobId, (key, value) -> {
+	    value.getPending().remove(url);
+	    value.getComplete().add(url);
+	    return value;
+	});
+    }
+
+    private void onFailure(String jobId, String url) {
+	imageMap.compute(jobId, (key, value) -> {
+	    value.getPending().remove(url);
+	    value.getFailed().add(url);
+	    return value;
+	});
     }
 
     private static String getResponse(HttpURLConnection conn) throws IOException {
@@ -99,7 +103,7 @@ public class ImageJobExecutor {
 	return destinationFile;
     }
 
-    private HttpURLConnection getConnection() throws IOException {
+    private HttpURLConnection createConnection(File file) throws IOException {
 	HttpURLConnection conn = (HttpURLConnection) new URL("https://api.imgur.com/3/image").openConnection();
 	conn.setDoInput(true);
 	conn.setDoOutput(true);
@@ -107,6 +111,12 @@ public class ImageJobExecutor {
 	conn.setRequestProperty("Authorization", "Client-ID f0d245d25bb3313");
 	conn.setReadTimeout(100000);
 	conn.connect();
+
+	OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream());
+	writer.write("image=" + toBase64(file));
+	writer.flush();
+	writer.close();
+
 	return conn;
     }
 
