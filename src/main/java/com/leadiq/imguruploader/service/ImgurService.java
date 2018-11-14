@@ -18,6 +18,7 @@ import com.leadiq.imguruploader.model.UploadedImages;
 public class ImgurService {
 
     private ConcurrentMap<String, Image> imageMap;
+
     private ImageJobExecutor jobExecutor;
 
     public ImgurService() {
@@ -35,10 +36,11 @@ public class ImgurService {
 
     public JobUploadResponse submitJob(@Valid JobRequest jobRequest) {
 	String id = getNewId();
-	Image image = new Image(id, new Date(), JobStatus.PENDING, jobRequest.getUrls());
+	Image image = new Image(id, new Date(), JobStatus.PENDING.getStatus());
 	imageMap.put(id, image);
 
-	jobRequest.getUrls().stream().forEach((url) -> {
+	jobRequest.getUrls().stream().parallel().forEach((url) -> {
+	    image.getPending().add(url);
 	    jobExecutor.executeJob(id, url);
 	});
 	return new JobUploadResponse(id);
@@ -48,7 +50,8 @@ public class ImgurService {
 	return UUID.randomUUID().toString();
     }
 
-    public ConcurrentMap<String, Image> getImageMap() {
-	return imageMap;
+    public Image getJobStatus(String jobId) {
+	return imageMap.get(jobId);
     }
+
 }
