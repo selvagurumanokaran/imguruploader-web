@@ -4,7 +4,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-public class Image {
+public class Job {
 
     private String id;
     private Date created;
@@ -14,12 +14,11 @@ public class Image {
     private Set<String> complete;
     private Set<String> failed;
 
-    public Image(String id, Date created, String status) {
+    public Job(String id, Date created, Set<String> pending) {
 	super();
 	this.id = id;
 	this.created = created;
-	this.status = status;
-	this.pending = new HashSet<>();
+	this.pending = pending;
 	this.complete = new HashSet<>();
 	this.failed = new HashSet<>();
     }
@@ -37,7 +36,14 @@ public class Image {
     }
 
     public String getStatus() {
-	return status;
+	if (this.pending.size() == 0) {
+	    this.status = JobStatus.COMPLETE.getStatus();
+	} else if (this.complete.size() == 0 && this.failed.size() == 0) {
+	    this.status = JobStatus.PENDING.getStatus();
+	} else {
+	    this.status = JobStatus.INPROGRESS.getStatus();
+	}
+	return this.status;
     }
 
     public Set<String> getPending() {
@@ -53,11 +59,11 @@ public class Image {
     }
 
     public void setFinished(Date finished) {
-        this.finished = finished;
+	this.finished = finished;
     }
 
     public void setStatus(String status) {
-        this.status = status;
+	this.status = status;
     }
 
 }

@@ -13,81 +13,70 @@ import java.util.concurrent.ConcurrentMap;
 import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Component;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.leadiq.imguruploader.error.UploadError;
-import com.leadiq.imguruploader.model.Image;
-import com.leadiq.imguruploader.model.JobStatus;
-
-import net.bytebuddy.utility.RandomString;
+import com.leadiq.imguruploader.model.Job;
 
 import java.io.FileInputStream;
 
-public class ImageJobExecutor {
+@Component
+public class JobExecutor {
 
-    private static Logger logger = LoggerFactory.getLogger(ImageJobExecutor.class);
+    private static Logger logger = LoggerFactory.getLogger(JobExecutor.class);
 
     private ObjectMapper mapper;
-    private ConcurrentMap<String, Image> imageMap;
-
-    @Value("${app.imgur.uploadurl}")
     private String imgurUploadUrl;
-    @Value("${app.oauth2.clientid}")
     private String clientId;
 
-    public ImageJobExecutor(ConcurrentMap<String, Image> imageMap) {
-	this.imageMap = imageMap;
+    public JobExecutor(@Value("${app.imgur.uploadurl}") String imgurUploadUrl,
+	    @Value("${app.oauth2.clientid}") String clientId) {
 	this.mapper = new ObjectMapper();
+	this.imgurUploadUrl = imgurUploadUrl;
+	this.clientId = clientId;
     }
 
     @Async
-    public void executeJob(String jobId, String url) {
-
+    public void executeJob(ConcurrentMap<String, Job> jobMap, String jobId, String url) {
 	try {
-	    imageMap.compute(jobId, (key, value) -> {
-		if (!value.getStatus().equals(JobStatus.INPROGRESS.getStatus())) {
-		    value.setStatus(JobStatus.INPROGRESS.getStatus());
-		}
-		return value;
-	    });
 	    File imageFile = downloadImage(new URL(url));
 	    HttpURLConnection conn = createConnection(imageFile);
 	    JsonNode response = mapper.readTree(getResponse(conn));
 	    if (response.get("success").asBoolean()) {
 		JsonNode data = response.get("data");
-		onSuccess(jobId, url, data.get("link").asText());
+		onSuccess(jobMap, jobId, url, data.get("link").asText());
 	    } else {
-		onFailure(jobId, url);
+		onFailure(jobMap, jobId, url);
 	    }
-	} catch (IOException e) {
-	    logger.error("Error occured in ImageJobExecutor ", e);
-	    onFailure(jobId, url);
+	} catch (Exception e) {
+	    logger.error("Image upload failed for url " + url, e);
+	    onFailure(jobMap, jobId, url);
 	}
     }
 
-    private void onSuccess(String jobId, String url, String imgurUrl) {
-	imageMap.compute(jobId, (key, value) -> {
+    private void onSuccess(ConcurrentMap<String, Job> jobMap, String jobId, String url, String imgurUrl) {
+	jobMap.compute(jobId, (key, value) -> {
 	    value.getPending().remove(url);
 	    if (value.getPending().size() == 0) {
 		value.setFinished(new Date());
-		value.setStatus(JobStatus.COMPLETE.getStatus());
 	    }
 	    value.getComplete().add(imgurUrl);
 	    return value;
 	});
     }
 
-    private void onFailure(String jobId, String url) {
-	imageMap.compute(jobId, (key, value) -> {
+    private void onFailure(ConcurrentMap<String, Job> jobMap, String jobId, String url) {
+	jobMap.compute(jobId, (key, value) -> {
 	    value.getPending().remove(url);
 	    if (value.getPending().size() == 0) {
 		value.setFinished(new Date());
-		value.setStatus(JobStatus.COMPLETE.getStatus());
 	    }
 	    value.getFailed().add(url);
 	    return value;
@@ -124,14 +113,8 @@ public class ImageJobExecutor {
 
     private File downloadImage(URL url) throws IOException {
 	String path = url.getPath();
-	String baseName = FilenameUtils.getBaseName(path);
-	if (baseName.equals("")) {
-	    baseName = RandomString.make(20);
-	}
+	String baseName = RandomStringUtils.randomAlphanumeric(20);
 	String ext = FilenameUtils.getExtension(path);
-	if (ext.equals("")) {
-	    throw new IOException("Invalid image file.");
-	}
 	File destinationFile = File.createTempFile(baseName, ext);
 	FileUtils.copyInputStreamToFile(url.openStream(), destinationFile);
 	return destinationFile;

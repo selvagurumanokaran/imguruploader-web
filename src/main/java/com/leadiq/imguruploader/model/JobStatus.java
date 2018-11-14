@@ -1,6 +1,7 @@
 package com.leadiq.imguruploader.model;
 
 public enum JobStatus {
+
     PENDING("pending"), INPROGRESS("in-progress"), COMPLETE("complete");
     private String status;
 
