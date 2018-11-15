@@ -1,16 +1,10 @@
 package com.leadiq.imguruploader.service;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 
-import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -18,23 +12,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
+import com.leadiq.imguruploader.model.ImgurRespose;
 import com.leadiq.imguruploader.repository.JobRepository;
-
-import java.io.FileInputStream;
 
 @Component
 public class JobExecutor {
 
     private static Logger logger = LoggerFactory.getLogger(JobExecutor.class);
-
-    @Autowired
-    private ObjectMapper mapper;
 
     @Autowired
     private JobRepository repository;
@@ -49,14 +42,12 @@ public class JobExecutor {
     }
 
     @Async
-    public Future<Boolean> executeJob(String jobId, String url) {
+    public CompletableFuture<Boolean> executeJob(String jobId, String url) {
 	try {
 	    File imageFile = downloadImage(new URL(url));
-	    HttpURLConnection conn = createConnection(imageFile);
-	    JsonNode response = mapper.readTree(getResponse(conn));
-	    if (response.get("success").asBoolean()) {
-		JsonNode data = response.get("data");
-		repository.updateJobSuccess(jobId, url, data.get("link").asText());
+	    ImgurRespose response = uploadImageToImgur(imageFile);
+	    if (response.isSuccess()) {
+		repository.updateJobSuccess(jobId, url, response.getData().getLink());
 	    } else {
 		repository.updateJobFailure(jobId, url);
 	    }
@@ -64,35 +55,17 @@ public class JobExecutor {
 	    logger.error("Image upload failed for url " + url, e);
 	    repository.updateJobFailure(jobId, url);
 	}
-	return null;
+	return CompletableFuture.completedFuture(true);
     }
 
-    private static String getResponse(HttpURLConnection conn) throws IOException {
-	StringBuilder str = new StringBuilder();
-	BufferedReader reader;
-
-	if (conn.getResponseCode() != HttpStatus.OK.value()) {
-	    throw new RuntimeException("Upload failed with HTTP status " + conn.getResponseCode());
-	}
-	reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-	String line;
-	while ((line = reader.readLine()) != null) {
-	    str.append(line);
-	}
-	reader.close();
-
-	if (str.toString().equals("")) {
-	    throw new RuntimeException("Empty response from imgur.");
-	}
-	return str.toString();
-    }
-
-    private String toBase64(File file) throws IOException {
-	byte[] b = new byte[(int) file.length()];
-	FileInputStream fs = new FileInputStream(file);
-	fs.read(b);
-	fs.close();
-	return URLEncoder.encode(DatatypeConverter.printBase64Binary(b), "UTF-8");
+    private ImgurRespose uploadImageToImgur(File file) {
+	HttpHeaders headers = new HttpHeaders();
+	headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+	headers.set("Authorization", "Client-ID " + clientId);
+	MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+	body.add("image", new FileSystemResource(file));
+	HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+	return new RestTemplate().postForEntity(imgurUploadUrl, requestEntity, ImgurRespose.class).getBody();
     }
 
     private File downloadImage(URL url) throws IOException {
@@ -103,23 +76,4 @@ public class JobExecutor {
 	FileUtils.copyInputStreamToFile(url.openStream(), destinationFile);
 	return destinationFile;
     }
-
-    private HttpURLConnection createConnection(File file) throws IOException {
-
-	HttpURLConnection conn = (HttpURLConnection) new URL(imgurUploadUrl).openConnection();
-	conn.setDoInput(true);
-	conn.setDoOutput(true);
-	conn.setRequestMethod("POST");
-	conn.setRequestProperty("Authorization", "Client-ID " + clientId);
-	conn.setReadTimeout(100000);
-	conn.connect();
-
-	OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream());
-	writer.write("image=" + toBase64(file));
-	writer.flush();
-	writer.close();
-
-	return conn;
-    }
-
 }
