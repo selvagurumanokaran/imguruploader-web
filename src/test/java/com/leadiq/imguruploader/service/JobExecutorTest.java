@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,7 @@ public class JobExecutorTest extends ImguruploaderWebApplicationTests {
     @Autowired
     private JobExecutor subject;
 
+    @Ignore
     @Test
     public void testExecuteJob() throws InterruptedException {
 	ConcurrentMap<String, Job> jobMap = new ConcurrentHashMap<>();
