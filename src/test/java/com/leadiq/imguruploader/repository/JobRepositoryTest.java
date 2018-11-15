@@ -7,14 +7,14 @@ import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
-import com.leadiq.imguruploader.ImguruploaderWebApplicationTests;
+import com.leadiq.imguruploader.ImguruploaderWebTests;
 import com.leadiq.imguruploader.model.Job;
 import com.leadiq.imguruploader.model.JobStatus;
 import com.leadiq.imguruploader.model.UploadedImages;
 import com.leadiq.imguruploader.repository.JobRepository;
 import com.leadiq.imguruploader.service.JobExecutor;
 
-public class JobRepositoryTest extends ImguruploaderWebApplicationTests {
+public class JobRepositoryTest extends ImguruploaderWebTests {
 
     @InjectMocks
     private JobRepository subject;

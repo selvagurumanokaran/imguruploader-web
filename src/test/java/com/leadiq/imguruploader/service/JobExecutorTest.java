@@ -11,12 +11,12 @@ import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.leadiq.imguruploader.ImguruploaderWebApplicationTests;
+import com.leadiq.imguruploader.ImguruploaderWebTests;
 import com.leadiq.imguruploader.model.Job;
 import com.leadiq.imguruploader.model.JobStatus;
 import com.leadiq.imguruploader.repository.JobRepository;
 
-public class JobExecutorTest extends ImguruploaderWebApplicationTests {
+public class JobExecutorTest extends ImguruploaderWebTests {
 
     @InjectMocks
     @Autowired

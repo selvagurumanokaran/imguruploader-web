@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
-import com.leadiq.imguruploader.ImguruploaderWebApplicationTests;
+import com.leadiq.imguruploader.ImguruploaderWebTests;
 import com.leadiq.imguruploader.error.UploadError;
 import com.leadiq.imguruploader.model.Job;
 import com.leadiq.imguruploader.model.JobRequest;
@@ -21,7 +21,7 @@ import com.leadiq.imguruploader.model.UploadedImages;
 import com.leadiq.imguruploader.service.ImgurService;
 
 @SuppressWarnings("unchecked")
-public class ImgurControllerTest extends ImguruploaderWebApplicationTests {
+public class ImgurControllerTest extends ImguruploaderWebTests {
 
     @InjectMocks
     @Autowired

@@ -16,7 +16,7 @@ import com.leadiq.imguruploader.model.Job;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-public abstract class ImguruploaderWebApplicationTests {
+public abstract class ImguruploaderWebTests {
 
     @Before
     public void injectMocks() {
