@@ -36,8 +36,7 @@ public class ImgurControllerTest extends ImguruploaderWebTests {
     @Test
     public void testUploadImage() {
 	JobRequest request = getMockRequest();
-	JobUploadResponse response = new JobUploadResponse("123");
-	doReturn(response).when(service).createJob(request);
+	doReturn("123").when(service).createJob(request);
 	ResponseEntity<JobUploadResponse> resEntity = (ResponseEntity<JobUploadResponse>) subject.uploadImage(request,
 		bindingResult);
 	assertEquals(resEntity.getStatusCode(), HttpStatus.OK);

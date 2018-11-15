@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.leadiq.imguruploader.model.Job;
 import com.leadiq.imguruploader.model.JobRequest;
-import com.leadiq.imguruploader.model.JobUploadResponse;
 import com.leadiq.imguruploader.model.UploadedImages;
 import com.leadiq.imguruploader.repository.JobRepository;
 
@@ -21,12 +20,12 @@ public class ImgurService {
 	return repository.fetchAllImages();
     }
 
-    public JobUploadResponse createJob(JobRequest jobRequest) {
+    public String createJob(JobRequest jobRequest) {
 	Job job = repository.createJob(jobRequest.getUrls());
 	job.getPending().forEach((url) -> {
 	    jobExecutor.executeJob(job.getId(), url);
 	});
-	return new JobUploadResponse(job.getId());
+	return job.getId();
     }
 
     public Job getJobStatus(String jobId) {

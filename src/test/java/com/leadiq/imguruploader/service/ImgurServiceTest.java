@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.leadiq.imguruploader.ImguruploaderWebTests;
 import com.leadiq.imguruploader.model.JobRequest;
-import com.leadiq.imguruploader.model.JobUploadResponse;
 
 public class ImgurServiceTest extends ImguruploaderWebTests {
 
@@ -30,7 +29,7 @@ public class ImgurServiceTest extends ImguruploaderWebTests {
 	jobRequest.setUrls(urls);
 
 	doReturn(null).when(executor).executeJob(ArgumentMatchers.any(), ArgumentMatchers.any());
-	JobUploadResponse job = subject.createJob(jobRequest);
-	assertEquals(job.getJobId() != null, true);
+	String jobId = subject.createJob(jobRequest);
+	assertEquals(jobId != null, true);
     }
 }

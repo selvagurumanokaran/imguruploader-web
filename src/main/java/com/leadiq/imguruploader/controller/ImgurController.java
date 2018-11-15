@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.leadiq.imguruploader.error.UploadError;
 import com.leadiq.imguruploader.model.Job;
 import com.leadiq.imguruploader.model.JobRequest;
+import com.leadiq.imguruploader.model.JobUploadResponse;
 import com.leadiq.imguruploader.model.UploadedImages;
 import com.leadiq.imguruploader.service.ImgurService;
 
@@ -36,7 +37,8 @@ public class ImgurController {
 	if (bindingResult.hasErrors()) {
 	    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(getOrderErrorDetail(bindingResult));
 	}
-	return ResponseEntity.ok(imgurService.createJob(jobRequest));
+	String jobId = imgurService.createJob(jobRequest);
+	return ResponseEntity.ok(new JobUploadResponse(jobId));
     }
 
     @GetMapping(value = "/v1/images/upload/{jobId}", produces = { APPLICATION_JSON_UTF8_VALUE })
