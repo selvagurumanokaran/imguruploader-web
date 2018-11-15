@@ -8,8 +8,6 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.Date;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 
 import javax.xml.bind.DatatypeConverter;
@@ -18,6 +16,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
@@ -25,7 +24,7 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.leadiq.imguruploader.model.Job;
+import com.leadiq.imguruploader.repository.JobRepository;
 
 import java.io.FileInputStream;
 
@@ -34,56 +33,38 @@ public class JobExecutor {
 
     private static Logger logger = LoggerFactory.getLogger(JobExecutor.class);
 
+    @Autowired
     private ObjectMapper mapper;
+
+    @Autowired
+    private JobRepository repository;
+
     private String imgurUploadUrl;
     private String clientId;
 
     public JobExecutor(@Value("${app.imgur.uploadurl}") String imgurUploadUrl,
 	    @Value("${app.oauth2.clientid}") String clientId) {
-	this.mapper = new ObjectMapper();
 	this.imgurUploadUrl = imgurUploadUrl;
 	this.clientId = clientId;
     }
 
     @Async
-    public Future<Boolean> executeJob(ConcurrentMap<String, Job> jobMap, String jobId, String url) {
+    public Future<Boolean> executeJob(String jobId, String url) {
 	try {
 	    File imageFile = downloadImage(new URL(url));
 	    HttpURLConnection conn = createConnection(imageFile);
 	    JsonNode response = mapper.readTree(getResponse(conn));
 	    if (response.get("success").asBoolean()) {
 		JsonNode data = response.get("data");
-		onSuccess(jobMap, jobId, url, data.get("link").asText());
+		repository.updateJobSuccess(jobId, url, data.get("link").asText());
 	    } else {
-		onFailure(jobMap, jobId, url);
+		repository.updateJobFailure(jobId, url);
 	    }
 	} catch (Exception e) {
 	    logger.error("Image upload failed for url " + url, e);
-	    onFailure(jobMap, jobId, url);
+	    repository.updateJobFailure(jobId, url);
 	}
 	return null;
-    }
-
-    private void onSuccess(ConcurrentMap<String, Job> jobMap, String jobId, String url, String imgurUrl) {
-	jobMap.compute(jobId, (key, value) -> {
-	    value.getPending().remove(url);
-	    if (value.getPending().size() == 0) {
-		value.setFinished(new Date());
-	    }
-	    value.getComplete().add(imgurUrl);
-	    return value;
-	});
-    }
-
-    private void onFailure(ConcurrentMap<String, Job> jobMap, String jobId, String url) {
-	jobMap.compute(jobId, (key, value) -> {
-	    value.getPending().remove(url);
-	    if (value.getPending().size() == 0) {
-		value.setFinished(new Date());
-	    }
-	    value.getFailed().add(url);
-	    return value;
-	});
     }
 
     private static String getResponse(HttpURLConnection conn) throws IOException {

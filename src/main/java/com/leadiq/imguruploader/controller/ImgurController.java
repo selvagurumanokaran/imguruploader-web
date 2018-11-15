@@ -36,7 +36,7 @@ public class ImgurController {
 	if (bindingResult.hasErrors()) {
 	    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(getOrderErrorDetail(bindingResult));
 	}
-	return ResponseEntity.ok(imgurService.submitJob(jobRequest));
+	return ResponseEntity.ok(imgurService.createJob(jobRequest));
     }
 
     @GetMapping(value = "/v1/images/upload/{jobId}", produces = { APPLICATION_JSON_UTF8_VALUE })
