@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import com.leadiq.imguruploader.error.UploadError;
+import com.leadiq.imguruploader.model.Job;
 import com.leadiq.imguruploader.model.JobRequest;
+import com.leadiq.imguruploader.model.UploadedImages;
 import com.leadiq.imguruploader.service.ImgurService;
 
 @RestController
@@ -24,7 +26,7 @@ public class ImgurController {
     private ImgurService imgurService;
 
     @GetMapping("/v1/images")
-    public ResponseEntity<?> getAllUploadedImages() {
+    public ResponseEntity<UploadedImages> getAllUploadedImages() {
 	return ResponseEntity.ok(imgurService.getAllUploadedImages());
     }
 
@@ -38,7 +40,7 @@ public class ImgurController {
     }
 
     @GetMapping(value = "/v1/images/upload/{jobId}", produces = { APPLICATION_JSON_UTF8_VALUE })
-    public ResponseEntity<?> getJobStatus(@PathVariable String jobId) {
+    public ResponseEntity<Job> getJobStatus(@PathVariable String jobId) {
 	return ResponseEntity.ok(imgurService.getJobStatus(jobId));
     }
 

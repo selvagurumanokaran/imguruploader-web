@@ -10,6 +10,8 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Date;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Future;
+
 import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -44,7 +46,7 @@ public class JobExecutor {
     }
 
     @Async
-    public void executeJob(ConcurrentMap<String, Job> jobMap, String jobId, String url) {
+    public Future<Boolean> executeJob(ConcurrentMap<String, Job> jobMap, String jobId, String url) {
 	try {
 	    File imageFile = downloadImage(new URL(url));
 	    HttpURLConnection conn = createConnection(imageFile);
@@ -59,6 +61,7 @@ public class JobExecutor {
 	    logger.error("Image upload failed for url " + url, e);
 	    onFailure(jobMap, jobId, url);
 	}
+	return null;
     }
 
     private void onSuccess(ConcurrentMap<String, Job> jobMap, String jobId, String url, String imgurUrl) {
